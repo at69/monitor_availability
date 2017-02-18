@@ -1,0 +1,13 @@
+# Learn more about services, parameters and containers at
+# http://symfony.com/doc/current/service_container.html
+parameters:
+#    parameter_name: value
+    monitor_manager_class: AppBundle\Service\MonitorManager
+
+services:
+#    service_name:
+#        class: AppBundle\Directory\ClassName
+#        arguments: ["@another_service_name", "plain_value", "%parameter_name%"]
+    monitor_manager:
+      class: "%monitor_manager_class%"
+      arguments: ["@doctrine.orm.default_entity_manager"]

@@ -79,4 +79,12 @@ class MonitorManager
 	{
 		return $this->repository->findOneBy($criteria, $orderBy);
 	}
+
+	/**
+	 * @return \Doctrine\ORM\EntityRepository
+	 */
+	public function getRepository()
+	{
+		return $this->repository;
+	}
 }

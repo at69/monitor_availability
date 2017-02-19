@@ -9,12 +9,14 @@
 namespace AppBundle\Controller;
 
 use AppBundle\Entity\Monitor;
+use AppBundle\Service\MonitorManager;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Doctrine\ORM\Query\Expr\Join;
 
 /**
  * Class MonitorController
@@ -33,10 +35,94 @@ class MonitorController extends Controller
 	 */
 	public function getMonitorsAction(Request $request)
 	{
+		/** @var MonitorManager $monitorManager */
 		$monitorManager = $this->get('monitor_manager');
 
-		/** @var Monitor[] $monitors */
-		$monitors = $monitorManager->findAll();
+		/** @var array|Monitor[] $monitors */
+		$monitors = array();
+
+		//get all $_GET parameters
+		$parameters = $request->query->all();
+
+		$qb = $monitorManager->getRepository()->createQueryBuilder('m');
+		$qb
+			->select('m.id, m.firstname, m.lastname, c.name, a.dayMask')
+			->innerJoin('AppBundle:Availability', 'a', Join::WITH, $qb->expr()->eq('m.id', 'a.monitorId'))
+			->innerJoin('AppBundle:City', 'c', Join::WITH, $qb->expr()->eq('a.cityId', 'c.id'));
+
+		foreach ($parameters as $parameter)
+		{
+			if(isset($parameter['firstname']))
+			{
+				$firstname = $parameter['firstname'];
+				if(preg_match('/\D{2,70}/', $firstname))
+				{
+					$qb
+						->andWhere('REGEXP(m.firstname, :regexp) = true')
+						->setParameter('regexp', $firstname);
+				}
+				else
+				{
+					return new JsonResponse(
+						['message' => 'firstname must match pattern \D{2,70}'],
+						Response::HTTP_NOT_FOUND
+					);
+				}
+			}
+			elseif(isset($parameter['lastname']))
+			{
+				$lastname = $parameter['lastname'];
+				if(preg_match('/\D{2,70}/', $lastname))
+				{
+					$qb
+						->andWhere('REGEXP(m.lastname, :regexp) = true')
+						->setParameter('regexp', $lastname);
+				}
+				else
+				{
+					return new JsonResponse(
+						['message' => 'lastname must match pattern \D{2,70}'],
+						Response::HTTP_NOT_FOUND
+					);
+				}
+			}
+			elseif(isset($parameter['city']))
+			{
+				$city = $parameter['city'];
+				if(preg_match('/\D{2,70}/', $city))
+				{
+					$qb
+						->andWhere('REGEXP(c.name, :regexp) = true')
+						->setParameter('regexp', $city);
+				}
+				else
+				{
+					return new JsonResponse(
+						['message' => 'city must match pattern \D{2,70}'],
+						Response::HTTP_NOT_FOUND
+					);
+				}
+			}
+			elseif(isset($parameter['day_mask']))
+			{
+				$dayMask = $parameter['day_mask'];
+				if(preg_match('/(1|0){7}/', $dayMask))
+				{
+					$qb
+						->andWhere('a.dayMask = ":day_mask"')
+						->setParameter('day_mask', $dayMask);
+				}
+				else
+				{
+					return new JsonResponse(
+						['message' => 'day_mask must match pattern (1|0){7}'],
+						Response::HTTP_NOT_FOUND
+					);
+				}
+			}
+		}
+
+		$monitors = $qb->getQuery()->getResult();
 
 		if(empty($monitors))
 		{
@@ -50,44 +136,21 @@ class MonitorController extends Controller
 
 		foreach ($monitors as $monitor)
 		{
-			$formatted[] = array(
-				'id'        => $monitor->getId(),
-				'firstname' => $monitor->getFirstname(),
-				'lastname'  => $monitor->getLastname()
+			if(!(isset($formatted[$monitor['id']])))
+			{
+				$formatted[$monitor['id']] = array(
+					'firstname'         => $monitor['firstname'],
+					'lastname'          => $monitor['lastname'],
+					'availabilities'    => array()
+				);
+			}
+
+			$formatted[$monitor['id']]['availabilities'][] = array(
+				'city'      => $monitor['name'],
+				'day_mask'  => $monitor['dayMask']
 			);
 		}
 
 		return new JsonResponse($formatted);
-	}
-
-	/**
-	 * @Route(
-	 *     "/monitors?firstname={firstname}",
-	 *     name="monitor_by_firstname",
-	 *     requirements={
-	 *          "firstname": "\D{2,70}"
-	 *     }
-	 * )
-	 * @Route("/monitors?lastname={lastname}",
-	 *     name="monitor_by_lastname",
-	 *     requirements={
-	 *          "firstname": "\D{2,70}"
-	 *     }
-	 * )
-	 * @Route("/monitors?city={city}",
-	 *     name="monitor_by_city"
-	 * )
-	 *  @Route("/monitors?day_mask={day_mask}",
-	 *     name="monitor_by_day_mask"
-	 * )
-	 * @Method("GET")
-	 *
-	 * @param Request $request
-	 *
-	 * @return JsonResponse
-	 */
-	public function getMonitor(Request $request)
-	{
-
 	}
 }

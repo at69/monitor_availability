@@ -32,7 +32,7 @@ class Availability
 	 *
 	 * @ORM\Column(name="monitor_id", type="integer")
 	 * @ORM\Id
-	 * @ORM\OneToOne(targetEntity=Monitor)
+	 * @ORM\OneToOne(targetEntity="Monitor")
 	 */
 	private $monitorId;
 
@@ -41,7 +41,7 @@ class Availability
 	 *
 	 * @ORM\Column(name="city_id", type="integer")
 	 * @ORM\Id
-	 * @ORM\OneToOne(targetEntity=City)
+	 * @ORM\OneToOne(targetEntity="City")
 	 */
 	private $cityId;
 	#endregion

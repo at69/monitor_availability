@@ -38,9 +38,6 @@ class MonitorController extends Controller
 		/** @var MonitorManager $monitorManager */
 		$monitorManager = $this->get('monitor_manager');
 
-		/** @var array|Monitor[] $monitors */
-		$monitors = array();
-
 		//get all $_GET parameters
 		$parameters = $request->query->all();
 
@@ -50,16 +47,16 @@ class MonitorController extends Controller
 			->innerJoin('AppBundle:Availability', 'a', Join::WITH, $qb->expr()->eq('m.id', 'a.monitorId'))
 			->innerJoin('AppBundle:City', 'c', Join::WITH, $qb->expr()->eq('a.cityId', 'c.id'));
 
-		foreach ($parameters as $parameter)
+		foreach ($parameters as $parameter => $value)
 		{
-			if(isset($parameter['firstname']))
+			if($parameter == 'firstname')
 			{
-				$firstname = $parameter['firstname'];
+				$firstname = $value;
 				if(preg_match('/\D{2,70}/', $firstname))
 				{
 					$qb
-						->andWhere('REGEXP(m.firstname, :regexp) = true')
-						->setParameter('regexp', $firstname);
+						->andWhere('REGEXP(m.firstname, :firstname) = true')
+						->setParameter('firstname', $firstname);
 				}
 				else
 				{
@@ -69,14 +66,14 @@ class MonitorController extends Controller
 					);
 				}
 			}
-			elseif(isset($parameter['lastname']))
+			elseif($parameter == 'lastname')
 			{
-				$lastname = $parameter['lastname'];
+				$lastname = $value;
 				if(preg_match('/\D{2,70}/', $lastname))
 				{
 					$qb
-						->andWhere('REGEXP(m.lastname, :regexp) = true')
-						->setParameter('regexp', $lastname);
+						->orWhere('REGEXP(m.lastname, :lastname) = true')
+						->setParameter('lastname', $lastname);
 				}
 				else
 				{
@@ -86,14 +83,14 @@ class MonitorController extends Controller
 					);
 				}
 			}
-			elseif(isset($parameter['city']))
+			elseif($parameter == 'city')
 			{
-				$city = $parameter['city'];
+				$city = $value;
 				if(preg_match('/\D{2,70}/', $city))
 				{
 					$qb
-						->andWhere('REGEXP(c.name, :regexp) = true')
-						->setParameter('regexp', $city);
+						->andWhere('REGEXP(c.name, :city_name) = true')
+						->setParameter('city_name', $city);
 				}
 				else
 				{
@@ -103,13 +100,13 @@ class MonitorController extends Controller
 					);
 				}
 			}
-			elseif(isset($parameter['day_mask']))
+			elseif($parameter == 'day_mask')
 			{
-				$dayMask = $parameter['day_mask'];
+				$dayMask = $value;
 				if(preg_match('/(1|0){7}/', $dayMask))
 				{
 					$qb
-						->andWhere('a.dayMask = ":day_mask"')
+						->andWhere('a.dayMask = :day_mask')
 						->setParameter('day_mask', $dayMask);
 				}
 				else
